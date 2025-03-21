@@ -210,12 +210,14 @@ kubectl create sa internal-app
 ```
 
 2. Then we apply our manifest and wait for the container to full initialize
+
 *You can use either the be a man folder or the basic folder to deploy an application to test injection*
 ```shell
 kubectl apply -f be-a-man/
 ```
 
 3. After a few Moments confirm Health
+
 *Notice how there are 2 containers running per pod.  The second container is the vault agent*
 ```shell
 # Input
