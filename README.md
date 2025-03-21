@@ -347,6 +347,7 @@ And voilà! 🎉 We've confirmed that our Vault instance is securely injecting c
 
 Now that we have a way to provide secure data to our applications, you can further process this data into an application specific format of enable other functions such as pod restart upon secret rotation by using additional annotations such as the below. 
 
+*Example of data formatting*
 ```yaml
 template:
    metadata:
