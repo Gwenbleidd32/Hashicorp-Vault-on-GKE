@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: type-a
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: type-a
+  updateStrategy:
+    type: RollingUpdate # When this configuration is re-applied, pods are gracefully updated with new configuration.
+  template:
+    metadata:
+      labels:
+        app: type-a
+        istio: monitor
+      annotations:
+        vault.hashicorp.com/agent-inject: 'true'
+        vault.hashicorp.com/role: 'internal-app'
+        vault.hashicorp.com/agent-inject-secret-database-config.txt: 'internal/data/database/config'
+    spec:
+      serviceAccountName: internal-app
+      automountServiceAccountToken: true # Token needed for Vault Agent to authenticate
+#>>>>>------------------------POD-LEVEL-CONTEXT--------------------------------
+# All Volumes bound to this set of pods are owned and only Usable by group or user 5000
+#>>>>>-------------------------------------------------------------------------
+      securityContext:
+        fsGroup: 5000 # Incredible how much this little argument resolves 
+        fsGroupChangePolicy: "Always" 
+#>>>>>------------------------MAIN-CONTAINER-----------------------------------
+      containers:
+      - name: giftwrapped-container
+        image: europe-central2-docker.pkg.dev/pooper-scooper/run-gmp/milk:v2
+        imagePullPolicy: Always
+      #>>> PORTS 
+        ports:
+        - name: http 
+          containerPort: 5000  
+        - name: http-envoy-prom # prom istio port
+          containerPort: 15090 # prom-monitoring default
+      #>>> SECURITY-CONTEXT
+        securityContext: 
+          seccompProfile:
+            type: RuntimeDefault 
+          readOnlyRootFilesystem: true 
+          runAsNonRoot: true # <
+          runAsUser: 5000 #
+          allowPrivilegeEscalation: false
+          capabilities: 
+            drop:
+            - ALL
+      #>>> RESOURCE-REQUESTS
+        resources:
+          requests: # Minimum resources
+            memory: "256Mi"  
+            cpu: "250m"            
+          limits: # Maximum resources
+            memory: "512Mi"      
+            cpu: "500m"    
+      #>>> STATEFUL-SET MOUNT-PATH
+        volumeMounts:          
+        - name: orbiter-module
+          mountPath: /data
+      #>>> OPTIONAL ENVIORNMENT VARIABLE for MOUNT-PATH 
+        env:       
+        - name: library_path
+          value: "/data" 
+      #>>> INIT/CONTAINER SCRIPT TO TEST MOUNT PATH AND WRITE ACCCESS.    
+        command: ["sh", "-c", "python app.py & while true; do date >> /data/date.txt; sleep 30; done"] 
+        # Run this command to test write access: kubectl exec type-a-0 -n lizzoslunch -- sh -c "cat /data/date.txt"
+      #>>> LIVENESS AND READINESS PROBES
+        readinessProbe:
+          httpGet:
+            path: /i-am-ready
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+        livenessProbe:
+          httpGet:
+            path: /i-am-alive
+            port: 5000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 1
+#>>>>>------------------STATEFULSET-VOLUME-CLAIM-------------------------------
+  volumeClaimTemplates:
+  - metadata:
+      name: orbiter-module
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+      storageClassName: "bordeaux"
+
+
