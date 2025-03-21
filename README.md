@@ -47,6 +47,7 @@ vault-agent-injector-84b987db6f-8kkrh   1/1     Running   0          2m23s
 *Take note of the vault-agent-injector pod—this is the webhook controller responsible for intercepting pod creation events and mutating them when specific Vault annotations are present. It ensures that secrets stored in Vault are automatically injected into containers that use the corresponding configured service accounts.*
 
 5. Using `kubectl exec vault-0 -- vault status`. We can check the status of any of our vault instances. If you look in the example below we can see that the attributes of `initialized` and `Unseal` both contain negative values. These indicate that our settings for our instances have yet to be configured. In the next group of steps we will ready the vault for usage. 
+
 *Example*
 ```shell
 $ kubectl exec vault-0 -- vault status
